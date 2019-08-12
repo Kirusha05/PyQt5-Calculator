@@ -16,6 +16,9 @@ class Ui_Calculator(object):
         MainWindow.resize(300, 510)
         MainWindow.setMinimumSize(QtCore.QSize(300, 510))
         MainWindow.setMaximumSize(QtCore.QSize(300, 510))
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap("../../../../.designer/backup/Calculator-red-512.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        MainWindow.setWindowIcon(icon)
         MainWindow.setToolButtonStyle(QtCore.Qt.ToolButtonIconOnly)
         MainWindow.setAnimated(True)
         MainWindow.setTabShape(QtWidgets.QTabWidget.Rounded)
@@ -500,5 +503,4 @@ class Ui_Calculator(object):
         self.pushButton_0.setText(_translate("MainWindow", "0"))
         self.pushButton_plusMinus.setText(_translate("MainWindow", "+/-"))
         self.pushButton_equals.setText(_translate("MainWindow", "="))
-
 
