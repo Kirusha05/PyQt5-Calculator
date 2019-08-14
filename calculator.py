@@ -30,14 +30,14 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
         self.pushButton_percent.clicked.connect(self.percent_pressed)
 
         self.pushButton_add.clicked.connect(self.binary_operation_pressed)
-        self.pushButton_substract.clicked.connect(self.binary_operation_pressed)
+        self.pushButton_subtract.clicked.connect(self.binary_operation_pressed)
         self.pushButton_multiply.clicked.connect(self.binary_operation_pressed)
         self.pushButton_divide.clicked.connect(self.binary_operation_pressed)
 
         self.pushButton_equals.clicked.connect(self.equals_pressed)
 
         self.pushButton_add.setCheckable(True)         # ┐
-        self.pushButton_substract.setCheckable(True)   # │╲ buttons can be checked
+        self.pushButton_subtract.setCheckable(True)   # │╲ buttons can be checked
         self.pushButton_multiply.setCheckable(True)    # │╱ buttons can be checked
         self.pushButton_divide.setCheckable(True)      # ┘
 
@@ -49,7 +49,7 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
     def digit_pressed(self):
         button = self.sender()
         if len(self.operation_screen.text().replace(',', '')) < 15:  # if there are less than 18 characters
-            if (self.pushButton_add.isChecked() or self.pushButton_substract.isChecked() or  # if the operation buttons
+            if (self.pushButton_add.isChecked() or self.pushButton_subtract.isChecked() or  # if the operation buttons
                     self.pushButton_multiply.isChecked() or self.pushButton_divide.isChecked()):  # were pressed
                 newLabel = self.operation_screen.text().replace(',', '') + button.text()
             else:  # if the operation buttons weren't pressed
@@ -120,48 +120,63 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
             self.fit_digits()
 
     def binary_operation_pressed(self):
+        button = self.sender()
         if self.operation_screen.text() != '' and self.operation_screen.text() != "Error":  # if the screen is not blank and
             if '%' not in self.operation_screen.text():                                     # Error isn't on the screen
-                button = self.sender()
 
                 self.firstNum = float(self.operation_screen.text().replace(',', ''))
 
+                if button.text() == '—':  # if the operation is subtraction
+                    self.calcHistory.setText(f'{self.addComma(self.operation_screen.text())}  -')
+                else:  # if the operation is not subtraction
+                    self.calcHistory.setText(f'{self.addComma(self.operation_screen.text())} {button.text()}')
+
                 button.setChecked(True)
 
                 self.operation_screen.setText("")
-                print(self.firstNum)
             else:  # if percent is in first number
-                button = self.sender()
                 self.firstNum = float(self.calculate_percent())
+
+                if button.text() == '—':  # if the operation is subtraction
+                    self.calcHistory.setText(f"{self.addComma(self.firstNum)}  -")
+                else:  # if the operation is not subtraction
+                    self.calcHistory.setText(f"{self.addComma(str(self.firstNum).replace('.0', ''))} {button.text()}")
+
                 button.setChecked(True)
                 self.operation_screen.setText("")
+
         elif self.operation_screen.text() == "Error":
             self.zeroDivision = False
             self.firstNum = None
             self.operation_screen.setText('')
 
+        elif self.operation_screen.text() == '':
+            button.setChecked(False)
+
     def equals_pressed(self):
-        if (self.pushButton_add.isChecked() or self.pushButton_substract.isChecked() or  # if the operation buttons were pressed
+        if (self.pushButton_add.isChecked() or self.pushButton_subtract.isChecked() or  # if the operation buttons were pressed
                 self.pushButton_multiply.isChecked() or self.pushButton_divide.isChecked()) and self.firstNum is not None:
             if self.operation_screen.text() != '':  # if second num isn't blank
-                secondNum = float(self.operation_screen.text().replace(',', ''))
-                print(secondNum)
+                if '%' in self.operation_screen.text():  # if % is in second num
+                    secondNum = float(self.calculate_percent())
+                else:  # if % isn't in second num
+                    secondNum = float(self.operation_screen.text().replace(',', ''))
+                self.calcHistory.setText(f"{self.calcHistory.text()} {str(secondNum).replace('.0', '')} =")
                 if self.pushButton_add.isChecked():  # add button was pressed
                     labelNumber = self.firstNum + secondNum
                     newLabel = format(labelNumber, '.15g')
                     self.operation_screen.setText(self.addComma(newLabel))
                     self.pushButton_add.setChecked(False)
 
-                elif self.pushButton_substract.isChecked():  # subtract button was pressed
+                elif self.pushButton_subtract.isChecked():  # subtract button was pressed
                     labelNumber = self.firstNum - secondNum
                     newLabel = format(labelNumber, '.15g')
                     self.operation_screen.setText(self.addComma(newLabel))
-                    self.pushButton_substract.setChecked(False)
+                    self.pushButton_subtract.setChecked(False)
 
                 elif self.pushButton_multiply.isChecked():  # multiply button was pressed
                     labelNumber = self.firstNum * secondNum
                     newLabel = format(labelNumber, '.15g')
-                    print(newLabel)
                     self.operation_screen.setText(self.addComma(newLabel))
                     self.pushButton_multiply.setChecked(False)
 
@@ -179,7 +194,7 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
                 if self.firstNum is not None:
                     self.operation_screen.setText(format(self.firstNum, '.15g'))
                     self.pushButton_add.setChecked(False)
-                    self.pushButton_substract.setChecked(False)
+                    self.pushButton_subtract.setChecked(False)
                     self.pushButton_divide.setChecked(False)
                     self.pushButton_multiply.setChecked(False)
         elif '%' in self.operation_screen.text():
@@ -188,6 +203,7 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
             
     def clear_screen(self):
         self.operation_screen.setText('')
+        self.calcHistory.setText('')
         self.operation_screen.setStyleSheet(" font: 75 50pt \"Calibri\";\n"
                                             " color: rgb(255, 255, 255);\n"
                                             " background-color: rgb(12, 16, 25);\n")
@@ -221,6 +237,7 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
     def addComma(self, num):
         if '.' in str(num):  # if is float
             num = str(num)
+            num = str(num.replace(',', ''))
             point_index = num.index('.')
             if '%' not in num:  # if % isn't in num
                 post = num[point_index + 1:]
@@ -347,6 +364,7 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
                         return '-' + ''.join(list1).strip(',') + '.' + post + '%' + ''.join(list2).strip(',')
         else:  # if is int
             num = str(num)
+            num = str(num.replace(',', ''))
             num = list(num)
             num.reverse()
 
@@ -462,15 +480,15 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
                         return '-' + ''.join(list1).strip(',') + '%' + ''.join(list2).strip(',')
 
     def fit_digits(self):
-        if len(self.operation_screen.text()) == 16:
+        if len(self.operation_screen.text().replace('-', '')) == 16:
             self.operation_screen.setStyleSheet(" font: 75 24pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
-        elif len(self.operation_screen.text()) == 15:
+        elif len(self.operation_screen.text().replace('-', '')) == 15:
             self.operation_screen.setStyleSheet(" font: 75 26pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
-        elif len(self.operation_screen.text()) == 14:
+        elif len(self.operation_screen.text().replace('-', '')) == 14:
             self.operation_screen.setStyleSheet(" font: 75 28pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
@@ -478,19 +496,19 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
             self.operation_screen.setStyleSheet(" font: 75 31pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
-        elif len(self.operation_screen.text()) == 12:
+        elif len(self.operation_screen.text().replace('-', '')) == 12:
             self.operation_screen.setStyleSheet(" font: 75 34pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
-        elif len(self.operation_screen.text()) == 11:
+        elif len(self.operation_screen.text().replace('-', '')) == 11:
             self.operation_screen.setStyleSheet(" font: 75 36.4pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
-        elif len(self.operation_screen.text()) == 10:
+        elif len(self.operation_screen.text().replace('-', '')) == 10:
             self.operation_screen.setStyleSheet(" font: 75 40pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
-        elif len(self.operation_screen.text()) == 9:
+        elif len(self.operation_screen.text().replace('-', '')) == 9:
             self.operation_screen.setStyleSheet(" font: 75 45pt \"Calibri\";\n"
                                                     " color: rgb(255, 255, 255);\n"
                                                     " background-color: rgb(12, 16, 25);\n")
@@ -498,6 +516,5 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
             self.operation_screen.setStyleSheet(" font: 75 50pt \"Calibri\";\n"
                                                 " color: rgb(255, 255, 255);\n"
                                                 " background-color: rgb(12, 16, 25);\n")
-
 
 
