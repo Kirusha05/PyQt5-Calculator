@@ -519,3 +519,4 @@ class Ui_Calculator(object):
         self.pushButton_plusMinus.setText(_translate("MainWindow", "+/-"))
         self.pushButton_equals.setText(_translate("MainWindow", "="))
         self.calcHistory.setText(_translate("MainWindow", ""))
+
