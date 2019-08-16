@@ -5,6 +5,9 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
 
     firstNum = None
     zeroDivision = False
+    resultDisplayed = False
+    multiple_operations = False
+    multiple_operations_times = 0
 
     def __init__(self):
         super().__init__()
@@ -45,19 +48,18 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
 
         self.pushButton_arrow.clicked.connect(self.rmv_last_digit)
 
-
     def digit_pressed(self):
         button = self.sender()
         if len(self.operation_screen.text().replace(',', '')) < 15:  # if there are less than 18 characters
-            if (self.pushButton_add.isChecked() or self.pushButton_subtract.isChecked() or  # if the operation buttons
-                    self.pushButton_multiply.isChecked() or self.pushButton_divide.isChecked()):  # were pressed
+            if self.zeroDivision:  # if Error is on the screen
+                newLabel = button.text()
+                self.calcHistory.setText("")
+                self.zeroDivision = False
+            else:  # if Error is not on the screen
                 newLabel = self.operation_screen.text().replace(',', '') + button.text()
-            else:  # if the operation buttons weren't pressed
-                if self.zeroDivision:
-                    newLabel = button.text()
-                    self.zeroDivision = False
-                else:
-                    newLabel = self.operation_screen.text().replace(',', '') + button.text()
+                if self.resultDisplayed:
+                    self.calcHistory.setText("")
+                    self.resultDisplayed = False
 
             self.operation_screen.setText(self.addComma(newLabel))
             self.fit_digits()
@@ -121,64 +123,82 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
 
     def binary_operation_pressed(self):
         button = self.sender()
-        if self.operation_screen.text() != '' and self.operation_screen.text() != "Error":  # if the screen is not blank and
-            if '%' not in self.operation_screen.text():                                     # Error isn't on the screen
+        if not self.multiple_operations:  # if operation button was pressed only one time
+            if self.operation_screen.text() != '' and self.operation_screen.text() != "Error":  # if the screen is not blank and
+                if '%' not in self.operation_screen.text():                                     # Error isn't on the screen
 
-                self.firstNum = float(self.operation_screen.text().replace(',', ''))
+                    self.firstNum = float(self.operation_screen.text().replace(',', ''))
+                    if self.operation_screen.text() != '0.':  # if firstNum ins't 0.
+                        if button.text() == '—':  # if the operation is subtraction
+                            self.calcHistory.setText(f'{self.addComma(self.operation_screen.text())}  -')
+                        else:  # if the operation is not subtraction
+                            self.calcHistory.setText(f'{self.addComma(self.operation_screen.text())} {button.text()}')
+                    else:  # if firstNum is 0.
+                        if button.text() == '—':  # if the operation is subtraction
+                            self.calcHistory.setText(f'0  -')
+                        else:  # if the operation is not subtraction
+                            self.calcHistory.setText(f'0 {button.text()}')
+                    button.setChecked(True)
 
-                if button.text() == '—':  # if the operation is subtraction
-                    self.calcHistory.setText(f'{self.addComma(self.operation_screen.text())}  -')
-                else:  # if the operation is not subtraction
-                    self.calcHistory.setText(f'{self.addComma(self.operation_screen.text())} {button.text()}')
+                    self.operation_screen.setText("")
+                else:  # if percent is in first number
+                    self.firstNum = float(self.calculate_percent())
 
-                button.setChecked(True)
+                    if button.text() == '—':  # if the operation is subtraction
+                        self.calcHistory.setText(f"{self.addComma(self.firstNum)}  -")
+                    else:  # if the operation is not subtraction
+                        self.calcHistory.setText(f"{self.addComma(str(self.firstNum).replace('.0', ''))} {button.text()}")
 
-                self.operation_screen.setText("")
-            else:  # if percent is in first number
-                self.firstNum = float(self.calculate_percent())
+                    button.setChecked(True)
+                    self.operation_screen.setText("")
 
-                if button.text() == '—':  # if the operation is subtraction
-                    self.calcHistory.setText(f"{self.addComma(self.firstNum)}  -")
-                else:  # if the operation is not subtraction
-                    self.calcHistory.setText(f"{self.addComma(str(self.firstNum).replace('.0', ''))} {button.text()}")
+            elif self.operation_screen.text() == "Error":  # if Error is on screen
+                self.zeroDivision = False
+                self.firstNum = None
+                self.operation_screen.setText('')
+            
+        else:  # if button is already checked (if multiple operations straight are made)
+            self.multiple_operations = True
 
-                button.setChecked(True)
-                self.operation_screen.setText("")
-
-        elif self.operation_screen.text() == "Error":
-            self.zeroDivision = False
-            self.firstNum = None
-            self.operation_screen.setText('')
-
-        elif self.operation_screen.text() == '':
-            button.setChecked(False)
 
     def equals_pressed(self):
         if (self.pushButton_add.isChecked() or self.pushButton_subtract.isChecked() or  # if the operation buttons were pressed
                 self.pushButton_multiply.isChecked() or self.pushButton_divide.isChecked()) and self.firstNum is not None:
             if self.operation_screen.text() != '':  # if second num isn't blank
+
                 if '%' in self.operation_screen.text():  # if % is in second num
                     secondNum = float(self.calculate_percent())
                 else:  # if % isn't in second num
                     secondNum = float(self.operation_screen.text().replace(',', ''))
-                self.calcHistory.setText(f"{self.calcHistory.text()} {str(secondNum).replace('.0', '')} =")
+                self.calcHistory.setText(f"{self.calcHistory.text()} {self.addComma(str(secondNum).replace('.0', ''))}")
+
                 if self.pushButton_add.isChecked():  # add button was pressed
                     labelNumber = self.firstNum + secondNum
                     newLabel = format(labelNumber, '.15g')
+                    if len(newLabel) > 15:
+                        newLabel = self.exponent_factor(newLabel)
                     self.operation_screen.setText(self.addComma(newLabel))
                     self.pushButton_add.setChecked(False)
+                    self.resultDisplayed = True
+                    self.fit_digits()
 
                 elif self.pushButton_subtract.isChecked():  # subtract button was pressed
                     labelNumber = self.firstNum - secondNum
                     newLabel = format(labelNumber, '.15g')
                     self.operation_screen.setText(self.addComma(newLabel))
                     self.pushButton_subtract.setChecked(False)
+                    self.resultDisplayed = True
+                    self.fit_digits()
 
                 elif self.pushButton_multiply.isChecked():  # multiply button was pressed
                     labelNumber = self.firstNum * secondNum
                     newLabel = format(labelNumber, '.15g')
+                    # if len(newLabel) > 15:
+                    #     newLabel = self.exponent_factor(newLabel)
                     self.operation_screen.setText(self.addComma(newLabel))
                     self.pushButton_multiply.setChecked(False)
+                    self.resultDisplayed = True
+                    self.fit_digits()
 
                 elif self.pushButton_divide.isChecked():  # divide button was pressed
                     if secondNum != 0:  # if the second num isn't 0
@@ -186,21 +206,28 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
                         newLabel = format(labelNumber, '.15g')
                         self.operation_screen.setText(self.addComma(newLabel))
                         self.pushButton_divide.setChecked(False)
+                        self.resultDisplayed = True
+                        self.fit_digits()
                     else:  # if the second num is 0
                         self.operation_screen.setText("Error")
                         self.pushButton_divide.setChecked(False)
                         self.zeroDivision = True
+
             else:  # if the second num is blank
                 if self.firstNum is not None:
-                    self.operation_screen.setText(format(self.firstNum, '.15g'))
+                    self.operation_screen.setText(self.addComma(format(self.firstNum, '.15g')))
+                    self.calcHistory.setText('')
                     self.pushButton_add.setChecked(False)
                     self.pushButton_subtract.setChecked(False)
                     self.pushButton_divide.setChecked(False)
                     self.pushButton_multiply.setChecked(False)
+
         elif '%' in self.operation_screen.text():
             number = self.calculate_percent()
+            self.calcHistory.setText(f'{self.operation_screen.text()} =')
             self.operation_screen.setText(self.addComma(number))
-            
+            self.resultDisplayed = True
+
     def clear_screen(self):
         self.operation_screen.setText('')
         self.calcHistory.setText('')
@@ -208,15 +235,22 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
                                             " color: rgb(255, 255, 255);\n"
                                             " background-color: rgb(12, 16, 25);\n")
         self.firstNum = None
+        self.resultDisplayed = False
 
     def rmv_last_digit(self):
-        if self.operation_screen.text() != "Error":  # if Error is on the screen
+        if self.operation_screen.text() != "Error":  # if Error isn't on the screen
+            # if not self.resultDisplayed:  # if the result isn't displayed on the screen
             last_digit_removed = self.operation_screen.text().replace(',', '')[:-1]
             self.operation_screen.setText(self.addComma(last_digit_removed))
-            self.firstNum = None
+            if self.resultDisplayed:  # if the result isn't displayed on the screen
+                self.firstNum = None
+                self.calcHistory.setText("")
+            self.resultDisplayed = False
             self.fit_digits()
+
         else:  # if Error is on the screen
             self.operation_screen.setText("")
+            self.calcHistory.setText("")
             self.firstNum = None
 
     def calculate_percent(self):
@@ -233,6 +267,14 @@ class CalculatorWindow(QtWidgets.QMainWindow, Ui_Calculator):
             newLabel = format(result, '.15g')
 
         return newLabel
+
+    def exponent_factor(self, num):  # adds the e notation to numbers bigger that 15 diigts
+        num = str(num).replace(',', '')
+        if len(num) > 15:
+            newLabel = format(num, '.3e')
+            return newLabel
+        else:
+            pass
 
     def addComma(self, num):
         if '.' in str(num):  # if is float
